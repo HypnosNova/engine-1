@@ -1,4 +1,4 @@
-import { Quaternion, Vector3 } from "@oasis-engine/math";
+import { Vector3 } from "@oasis-engine/math";
 import { IPhysicsMaterial } from "../IPhysicsMaterial";
 
 /**
@@ -6,10 +6,10 @@ import { IPhysicsMaterial } from "../IPhysicsMaterial";
  */
 export interface IColliderShape {
   /**
-   * Set unique id of the collider shape.
-   * @param id - The unique index
+   * Set local rotation.
+   * @param rotation - The local rotation
    */
-  setUniqueID(id: number): void;
+  setRotation(rotation: Vector3): void;
 
   /**
    * Set local position.
@@ -24,6 +24,12 @@ export interface IColliderShape {
   setWorldScale(scale: Vector3): void;
 
   /**
+   * Sets the contact offset.
+   * @param offset - contact offset
+   */
+  setContactOffset(offset: number): void;
+
+  /**
    * Set physics material on shape.
    * @param material - The physics material
    */
@@ -34,12 +40,6 @@ export interface IColliderShape {
    * @param value - True for TriggerShape, false for SimulationShape
    */
   setIsTrigger(value: boolean): void;
-
-  /**
-   * Set scene query or not.
-   * @param value - True for Query, false for not Query
-   */
-  setIsSceneQuery(value: boolean): void;
 
   /**
    * Decrements the reference count of a shape and releases it if the new reference count is zero.

@@ -17,11 +17,7 @@ import { SphericalHarmonics3 } from "@oasis-engine/math";
 class EnvLoader extends Loader<AmbientLight> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<AmbientLight> {
     return new AssetPromise((resolve, reject) => {
-      resourceManager
-        .load<ArrayBuffer>({
-          type: AssetType.Buffer,
-          url: item.url
-        })
+      this.request<ArrayBuffer>(item.url, { type: "arraybuffer" })
         .then((arraybuffer) => {
           const shArray = new Float32Array(arraybuffer, 0, 27);
           const shByteLength = 27 * 4;
@@ -47,7 +43,7 @@ class EnvLoader extends Loader<AmbientLight> {
           const sh = new SphericalHarmonics3();
 
           ambientLight.diffuseMode = DiffuseMode.SphericalHarmonics;
-          sh.setValueByArray(shArray);
+          sh.copyFromArray(shArray);
           ambientLight.diffuseSphericalHarmonics = sh;
           ambientLight.specularTexture = texture;
           ambientLight.specularTextureDecodeRGBM = true;

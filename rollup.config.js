@@ -56,7 +56,8 @@ const commonPlugins = [
 
 function config({ location, pkgJson }) {
   const input = path.join(location, "src", "index.ts");
-  const external = Object.keys(pkgJson.dependencies || {});
+  const dependencies = Object.assign({}, pkgJson.dependencies ?? {}, pkgJson.peerDependencies ?? {});
+  const external = Object.keys(dependencies);
   const name = pkgJson.name;
   commonPlugins.push(
     replace({
@@ -126,6 +127,7 @@ function config({ location, pkgJson }) {
           },
           {
             file: path.join(location, pkgJson.main),
+            sourcemap: true,
             format: "commonjs"
           }
         ],

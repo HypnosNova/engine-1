@@ -1,14 +1,14 @@
-import { IPhysicsManager } from "@oasis-engine/design";
-import { BoundingBox, BoundingSphere, Ray, Vector3, CollisionUtil } from "oasis-engine";
+import { ICharacterController, IPhysicsManager } from "@oasis-engine/design";
+import { BoundingBox, BoundingSphere, CollisionUtil, Ray, Vector3 } from "oasis-engine";
+import { DisorderedArray } from "./DisorderedArray";
 import { LiteCollider } from "./LiteCollider";
 import { LiteHitResult } from "./LiteHitResult";
 import { LiteBoxColliderShape } from "./shape/LiteBoxColliderShape";
-import { LiteSphereColliderShape } from "./shape/LiteSphereColliderShape";
 import { LiteColliderShape } from "./shape/LiteColliderShape";
-import { DisorderedArray } from "./DisorderedArray";
+import { LiteSphereColliderShape } from "./shape/LiteSphereColliderShape";
 
 /**
- * A manager is a collection of bodies and constraints which can interact.
+ * A manager is a collection of colliders and constraints which can interact.
  */
 export class LitePhysicsManager implements IPhysicsManager {
   private static _tempSphere: BoundingSphere = new BoundingSphere();
@@ -51,7 +51,7 @@ export class LitePhysicsManager implements IPhysicsManager {
    * {@inheritDoc IPhysicsManager.setGravity }
    */
   setGravity(value: Vector3): void {
-    throw "Physics-lite don't support gravity. Use Physics-PhysX instead!";
+    console.log("Physics-lite don't support gravity. Use Physics-PhysX instead!");
   }
 
   /**
@@ -111,6 +111,7 @@ export class LitePhysicsManager implements IPhysicsManager {
   raycast(
     ray: Ray,
     distance: number,
+    onRaycast: (obj: number) => boolean,
     hit?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
   ): boolean {
     const colliders = this._colliders;
@@ -125,12 +126,12 @@ export class LitePhysicsManager implements IPhysicsManager {
     for (let i = 0, len = colliders.length; i < len; i++) {
       const collider = colliders[i];
 
-      if (collider._raycast(ray, curHit)) {
+      if (collider._raycast(ray, onRaycast, curHit)) {
         isHit = true;
         if (curHit.distance < distance) {
           if (hitResult) {
-            curHit.normal.cloneTo(hitResult.normal);
-            curHit.point.cloneTo(hitResult.point);
+            hitResult.normal.copyFrom(curHit.normal);
+            hitResult.point.copyFrom(curHit.point);
             hitResult.distance = curHit.distance;
             hitResult.shapeID = curHit.shapeID;
           } else {
@@ -144,8 +145,8 @@ export class LitePhysicsManager implements IPhysicsManager {
     if (!isHit && hitResult) {
       hitResult.shapeID = -1;
       hitResult.distance = 0;
-      hitResult.point.setValue(0, 0, 0);
-      hitResult.normal.setValue(0, 0, 0);
+      hitResult.point.set(0, 0, 0);
+      hitResult.normal.set(0, 0, 0);
     } else if (isHit && hitResult) {
       hit(hitResult.shapeID, hitResult.distance, hitResult.point, hitResult.normal);
     }
@@ -153,14 +154,28 @@ export class LitePhysicsManager implements IPhysicsManager {
   }
 
   /**
-   * Calculate the boundingbox in world space from boxCollider.
+   * {@inheritDoc IPhysicsManager.addCharacterController }
+   */
+  addCharacterController(characterController: ICharacterController): void {
+    throw "Physics-lite don't support addCharacterController. Use Physics-PhysX instead!";
+  }
+
+  /**
+   * {@inheritDoc IPhysicsManager.removeCharacterController }
+   */
+  removeCharacterController(characterController: ICharacterController): void {
+    throw "Physics-lite don't support removeCharacterController. Use Physics-PhysX instead!";
+  }
+
+  /**
+   * Calculate the bounding box in world space from boxCollider.
    * @param boxCollider - The boxCollider to calculate
    * @param out - The calculated boundingBox
    */
   private static _updateWorldBox(boxCollider: LiteBoxColliderShape, out: BoundingBox): void {
     const mat = boxCollider._transform.worldMatrix;
-    boxCollider._boxMax.cloneTo(out.max);
-    boxCollider._boxMin.cloneTo(out.min);
+    out.min.copyFrom(boxCollider._boxMin);
+    out.max.copyFrom(boxCollider._boxMax);
     BoundingBox.transform(out, mat, out);
   }
 
