@@ -19,13 +19,13 @@ export class ResourceManager {
   static _addLoader(type: string, loader: Loader<any>, extNames: string[]) {
     this._loaders[type] = loader;
     for (let i = 0, len = extNames.length; i < len; i++) {
-      this._extTypeMapping[extNames[i]] = type;
+      this._extTypeMapping[extNames[i].toLowerCase()] = type;
     }
   }
 
   private static _getTypeByUrl(url: string): string {
     const path = url.split("?")[0];
-    return this._extTypeMapping[path.substring(path.lastIndexOf(".") + 1)];
+    return this._extTypeMapping[path.substring(path.lastIndexOf(".") + 1).toLowerCase()];
   }
 
   /** The number of retries after failing to load assets. */
@@ -322,7 +322,8 @@ export class ResourceManager {
     // Check cache
     const cacheObject = this._assetUrlPool[assetBaseURL];
     if (cacheObject) {
-      return new AssetPromise((resolve) => {
+      return new AssetPromise((resolve, _, setProgress) => {
+        setProgress(1);
         resolve(this._getResolveResource(cacheObject, paths) as T);
       });
     }
@@ -342,8 +343,11 @@ export class ResourceManager {
     const loadingPromises = this._loadingPromises;
     const loadingPromise = loadingPromises[assetURL];
     if (loadingPromise) {
-      return new AssetPromise((resolve, reject) => {
+      return new AssetPromise((resolve, reject, setProgress) => {
         loadingPromise
+          .onProgress((v) => {
+            setProgress(v);
+          })
           .then((resource: EngineObject) => {
             resolve(resource as T);
           })
@@ -408,7 +412,7 @@ export class ResourceManager {
     const objects = Utils.objectValues(this._referResourcePool);
     for (let i = 0, len = objects.length; i < len; i++) {
       if (!objects[i].isGCIgnored || forceDestroy) {
-        objects[i].destroy();
+        (<ReferResource>objects[i]).destroy(forceDestroy);
       }
     }
   }
@@ -425,21 +429,12 @@ export class ResourceManager {
   }
 
   private _parseURL(path: string): { assetBaseURL: string; queryPath: string } {
-    let assetBaseURL = path;
-    const index = assetBaseURL.indexOf("?");
-    if (index !== -1) {
-      assetBaseURL = assetBaseURL.slice(0, index);
-    }
-    return { assetBaseURL, queryPath: this._getParameterByName("q", path) };
-  }
-
-  private _getParameterByName(name, url = window.location.href) {
-    name = name.replace(/[\[\]]/g, "\\$&");
-    var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
-      results = regex.exec(url);
-    if (!results) return null;
-    if (!results[2]) return "";
-    return decodeURIComponent(results[2].replace(/\+/g, " "));
+    const [baseUrl, searchStr] = path.split("?");
+    const searchParams = new URLSearchParams(searchStr);
+    const queryPath = searchParams.get("q");
+    searchParams.delete("q");
+    const assetBaseURL = searchParams.size > 0 ? baseUrl + "?" + searchParams.toString() : baseUrl;
+    return { assetBaseURL, queryPath };
   }
 
   private _parseQueryPath(string): string[] {

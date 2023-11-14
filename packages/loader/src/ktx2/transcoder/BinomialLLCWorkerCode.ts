@@ -2,6 +2,25 @@ import { IBinomialMessage, TranscodeResult } from "./AbstractTranscoder";
 
 /** @internal */
 export function TranscodeWorkerCode() {
+  let initPromise: any;
+
+  const init = function (wasmBinary?) {
+    if (!initPromise) {
+      initPromise = new Promise((resolve, reject) => {
+        const BasisModule = {
+          wasmBinary,
+          onRuntimeInitialized: () => resolve(BasisModule),
+          onAbort: reject
+        };
+        self["BASIS"](BasisModule);
+      }).then((BasisModule: any) => {
+        BasisModule.initializeBasis();
+        return BasisModule.KTX2File;
+      });
+    }
+    return initPromise;
+  };
+
   self.onmessage = function onmessage(event: MessageEvent<IBinomialMessage>) {
     const message = event.data;
 
@@ -49,7 +68,7 @@ export const _init = function init() {
 
 export const init = _init();
 
-export function transcode(buffer: ArrayBuffer, targetFormat: any, KTX2File: any): TranscodeResult {
+export function transcode(buffer: Uint8Array, targetFormat: any, KTX2File: any): TranscodeResult {
   enum BasisFormat {
     ETC1 = 0,
     ETC2 = 1,
@@ -121,6 +140,11 @@ export function transcode(buffer: ArrayBuffer, targetFormat: any, KTX2File: any)
   if (!ktx2File.isValid()) {
     cleanup();
     throw new Error("Invalid or unsupported .ktx2 file");
+  }
+
+  if (!ktx2File.startTranscoding()) {
+    cleanup();
+    throw new Error("KTX2 startTranscoding failed");
   }
 
   const width = ktx2File.getWidth();
